@@ -2,7 +2,9 @@ import random
 
 import openpyxl
 
-filename = r"/Users/hyeon/Downloads/test1.xlsx"   
+#filename = r"/Users/hyeon/Downloads/test1.xlsx"
+
+filename = input("파일 경로를 입력해주세요\n")
 wb = openpyxl.load_workbook(filename)
 ws = wb.active
 
@@ -32,7 +34,7 @@ def divide_list(input_list, num_groups):
     return groups
 
 input_list = excel_to_list_all[0]
-num_groups = int(input("몇개의 그룹으로 나누시겠습니까?"))
+num_groups = int(input("몇개의 그룹으로 나누시겠습니까?\n"))
 
 result = divide_list(input_list, num_groups)
 print(result)
