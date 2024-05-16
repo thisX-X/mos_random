@@ -1,7 +1,7 @@
 import sys
 import pandas as pd
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, 
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, 
     QFileDialog, QMessageBox, QTextEdit
 )
 
@@ -12,6 +12,7 @@ class ExcelSplitter(QWidget):
 
     def initUI(self):
         layout = QVBoxLayout()
+        hbox = QHBoxLayout()  # 수평 상자 레이아웃
 
         self.excel_label = QLabel('엑셀 파일 경로:')
         self.excel_input = QLineEdit(self)
@@ -29,7 +30,7 @@ class ExcelSplitter(QWidget):
 
         self.result_display = QTextEdit(self)
 
-        self.group_labels = []  # 각 그룹을 나타내는 QLabel을 저장할 리스트
+        self.group_labels = [] 
 
         layout.addWidget(self.excel_label)
         layout.addWidget(self.excel_input)
@@ -40,7 +41,9 @@ class ExcelSplitter(QWidget):
         layout.addWidget(self.submit_button)
         layout.addWidget(self.result_display)
 
-        self.setLayout(layout)
+        hbox.addLayout(layout)  # 수직 레이아웃을 수평 상자 레이아웃에 추가
+
+        self.setLayout(hbox)  # 전체 레이아웃을 수평 상자 레이아웃으로 설정
         self.setWindowTitle('엑셀 인원 나누기')
         self.show()
 
@@ -83,10 +86,8 @@ class ExcelSplitter(QWidget):
             QMessageBox.warning(self, '입력 오류', '그룹 개수는 0보다 커야 합니다.')
             return
 
-        # 인원을 랜덤으로 섞기
         df = df.sample(frac=1).reset_index(drop=True)
 
-        # 각 그룹의 크기 계산
         group_size = len(df) // group_count
         remainder = len(df) % group_count
 
@@ -95,17 +96,17 @@ class ExcelSplitter(QWidget):
 
         for i in range(group_count):
             end_idx = start_idx + group_size + (1 if i < remainder else 0)
-            group_df = df.iloc[start_idx:end_idx].copy()  # 그룹 DataFrame 복사
+            group_df = df.iloc[start_idx:end_idx].copy()
 
             groups.append(group_df)
             start_idx = end_idx
 
-        # 각 그룹의 데이터를 해당하는 QLabel에 표시
         for i, group_df in enumerate(groups):
             if i < len(self.group_labels):
                 self.group_labels[i].setText(f'그룹 {i + 1}:\n{group_df["Name"].to_string(index=False, header=False)}\n')
             else:
                 new_label = QLabel(f'그룹 {i + 1}:\n{group_df["Name"].to_string(index=False, header=False)}\n')
+
                 self.group_labels.append(new_label)
                 self.layout().addWidget(new_label)
 
