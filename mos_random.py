@@ -29,6 +29,8 @@ class ExcelSplitter(QWidget):
 
         self.result_display = QTextEdit(self)
 
+        self.group_labels = []  # 각 그룹을 나타내는 QLabel을 저장할 리스트
+
         layout.addWidget(self.excel_label)
         layout.addWidget(self.excel_input)
         layout.addWidget(self.excel_button)
@@ -37,6 +39,12 @@ class ExcelSplitter(QWidget):
         layout.addWidget(self.display_button)
         layout.addWidget(self.submit_button)
         layout.addWidget(self.result_display)
+
+        # 각 그룹을 나타내는 QLabel을 추가
+        for i in range(10):  # 최대 10개의 그룹을 표시할 수 있도록 함
+            label = QLabel(f'그룹 {i+1}:')
+            self.group_labels.append(label)
+            layout.addWidget(label)
 
         self.setLayout(layout)
         self.setWindowTitle('엑셀 인원 나누기')
@@ -93,16 +101,15 @@ class ExcelSplitter(QWidget):
 
         for i in range(group_count):
             end_idx = start_idx + group_size + (1 if i < remainder else 0)
-            groups.append(df.iloc[start_idx:end_idx])
+            group_df = df.iloc[start_idx:end_idx].copy()  # 그룹 DataFrame 복사
+
+            groups.append(group_df)
             start_idx = end_idx
 
-        result_text = ""
-        for i, group in enumerate(groups):
-            result_text += f'그룹 {i + 1}:\n'
-            result_text += group.to_string(index=False, header=False)
-            result_text += '\n\n'
+        # 각 그룹의 데이터를 해당하는 QLabel에 표시
+        for i, group_df in enumerate(groups):
+            self.group_labels[i].setText(f'그룹 {i + 1}:\n{group_df["Name"].to_string(index=False, header=False)}\n')
 
-        self.result_display.setPlainText(result_text)
         QMessageBox.information(self, '완료', '인원을 나누어 표시했습니다.')
 
 if __name__ == '__main__':
