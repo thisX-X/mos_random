@@ -1,5 +1,4 @@
 import random
-
 import openpyxl
 
 #filename = r"/Users/hyeon/Downloads/test1.xlsx"
@@ -37,4 +36,7 @@ input_list = excel_to_list_all[0]
 num_groups = int(input("몇개의 그룹으로 나누시겠습니까?\n"))
 
 result = divide_list(input_list, num_groups)
-print(result)
+
+for i in result:
+    print(i)
+
