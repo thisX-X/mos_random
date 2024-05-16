@@ -1,42 +1,99 @@
-import random
-import openpyxl
+import sys
+import pandas as pd
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, 
+    QFileDialog, QMessageBox, QTextEdit
+)
 
-#filename = r"/Users/hyeon/Downloads/test1.xlsx"
+class ExcelSplitter(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
 
-filename = input("파일 경로를 입력해주세요\n")
-wb = openpyxl.load_workbook(filename)
-ws = wb.active
+    def initUI(self):
+        layout = QVBoxLayout()
 
-excel_to_list_all=[]
+        self.excel_label = QLabel('엑셀 파일 경로:')
+        self.excel_input = QLineEdit(self)
+        self.excel_button = QPushButton('엑셀 파일 선택', self)
+        self.excel_button.clicked.connect(self.select_excel_file)
 
-for column in ws.columns:
-    excel_to_list1=[]
+        self.count_label = QLabel('그룹 개수:')
+        self.count_input = QLineEdit(self)
 
-    for cell in column:
-        excel_to_list1.append(cell.value)
+        self.submit_button = QPushButton('전송', self)
+        self.submit_button.clicked.connect(self.split_excel)
 
-    excel_to_list_all.append(excel_to_list1)
+        self.result_display = QTextEdit(self)
+        self.result_display.setReadOnly(True)
 
-def divide_list(input_list, num_groups):
-    if num_groups <= 0:
-        raise ValueError("0이상의 숫자를 입력하셔야 합니다.")
-    if num_groups > len(input_list):
-        raise ValueError("그룹의 숫자는 리스트의 숫자보다 클수 없습니다.")
+        layout.addWidget(self.excel_label)
+        layout.addWidget(self.excel_input)
+        layout.addWidget(self.excel_button)
+        layout.addWidget(self.count_label)
+        layout.addWidget(self.count_input)
+        layout.addWidget(self.submit_button)
+        layout.addWidget(self.result_display)
 
-    random.shuffle(input_list)
+        self.setLayout(layout)
+        self.setWindowTitle('엑셀 인원 나누기')
+        self.show()
 
-    groups = [[] for _ in range(num_groups)]
+    def select_excel_file(self):
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, '엑셀 파일 선택', '', 'Excel Files (*.xlsx)', options=options)
+        if file_path:
+            self.excel_input.setText(file_path)
 
-    for i, item in enumerate(input_list):
-        groups[i % num_groups].append(item)
+    def split_excel(self):
+        excel_path = self.excel_input.text()
+        try:
+            group_count = int(self.count_input.text())
+        except ValueError:
+            QMessageBox.warning(self, '입력 오류', '올바른 숫자를 입력하세요.')
+            return
 
-    return groups
+        try:
+            df = pd.read_excel(excel_path, usecols=[0])  # A열만 읽기
+        except Exception as e:
+            QMessageBox.warning(self, '파일 오류', f'엑셀 파일을 읽는 중 오류가 발생했습니다: {e}')
+            return
 
-input_list = excel_to_list_all[0]
-num_groups = int(input("몇개의 그룹으로 나누시겠습니까?\n"))
+        try:
+            self.split_and_display(df, group_count)
+        except Exception as e:
+            QMessageBox.warning(self, '처리 오류', f'인원 나누는 중 오류가 발생했습니다: {e}')
 
-result = divide_list(input_list, num_groups)
+    def split_and_display(self, df, group_count):
+        if group_count <= 0:
+            QMessageBox.warning(self, '입력 오류', '그룹 개수는 0보다 커야 합니다.')
+            return
 
-for i in result:
-    print(i)
+        # 인원을 랜덤으로 섞기
+        df = df.sample(frac=1).reset_index(drop=True)
 
+        # 각 그룹의 크기 계산
+        group_size = len(df) // group_count
+        remainder = len(df) % group_count
+
+        groups = []
+        start_idx = 0
+
+        for i in range(group_count):
+            end_idx = start_idx + group_size + (1 if i < remainder else 0)
+            groups.append(df.iloc[start_idx:end_idx])
+            start_idx = end_idx
+
+        result_text = ""
+        for i, group in enumerate(groups):
+            result_text += f'그룹 {i + 1}:\n'
+            result_text += group.to_string(index=False, header=False)
+            result_text += '\n\n'
+
+        self.result_display.setPlainText(result_text)
+        QMessageBox.information(self, '완료', '인원을 나누어 표시했습니다.')
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = ExcelSplitter()
+    sys.exit(app.exec_())
