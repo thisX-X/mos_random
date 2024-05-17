@@ -1,5 +1,6 @@
 import sys
 import pandas as pd
+import random
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, 
     QFileDialog, QMessageBox, QTextEdit, QGridLayout
@@ -113,28 +114,23 @@ class ExcelSplitter(QWidget):
             QMessageBox.warning(self, '입력 오류', '그룹 개수는 0보다 커야 합니다.')
             return
 
+        # 조장 이름 가져오기
         leaders = [input.text().strip() for input in self.leader_inputs if input.text().strip()]
-        if len(leaders) != group_count:
-            QMessageBox.warning(self, '입력 오류', '모든 그룹에 대해 조장을 입력하세요.')
-            return
 
-        for leader in leaders:
-            if leader not in df['Name'].values:
-                QMessageBox.warning(self, '입력 오류', f'조장 {leader}이(가) 명단에 없습니다.')
-                return
+        # 조장 이름 제외하고 그룹에 포함되지 않도록 필터링
+        data_for_split = df[~df['Name'].isin(leaders)].copy()
 
-        all_names = pd.concat([df, pd.DataFrame(leaders, columns=['Name'])])
-        all_names = all_names.sample(frac=1).reset_index(drop=True)
+        # 중복되지 않는 나머지 인원으로부터 그룹 형성
+        remaining_names = list(set(data_for_split['Name'].tolist()))  # 중복 제거
+        random.shuffle(remaining_names)  # 순서 섞기
 
+        # 그룹 구성
         groups = []
-        start_idx = 0
         for i in range(group_count):
-            group = [leaders[i]] 
-            end_idx = start_idx + (len(all_names) // group_count) + (1 if i < len(all_names) % group_count else 0) - 1
-            group.extend(all_names.iloc[start_idx:end_idx]['Name'].tolist())
+            group = remaining_names[i::group_count]  # 그룹 개수에 맞게 인원 배치
             groups.append(group)
-            start_idx = end_idx
 
+        # 결과 표시
         for i, group in enumerate(groups):
             group_df = pd.DataFrame(group, columns=['Name'])
             if i < len(self.group_labels):
